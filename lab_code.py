@@ -1,5 +1,7 @@
 # This is the auxiliary code for the 3F8 coursework. Some parts are missing and
-# should be completed by the student. These are Marked with XXX
+# should be completed by the student. This coursework aims to implement a classifier,
+# apply it to a simple dataset, evaluate the results using several metrics and then
+# improve the performance using non-linear feature expansion.
 
 # We load the data
 
@@ -143,7 +145,8 @@ def fit_w(X_tilde_train, y_train, X_tilde_test, y_test, n_steps, alpha):
     for i in range(n_steps):
         sigmoid_value = predict(X_tilde_train, w)
 
-        w = # XXX Gradient-based update rule for w. To be completed by the student
+        gradient = np.matmul((y_train - sigmoid_value), X_tilde_train)
+        w = w + alpha * gradient # Gradient-based update rule for w
 
         ll_train[ i ] = compute_average_ll(X_tilde_train, y_train, w)
         ll_test[ i ] = compute_average_ll(X_tilde_test, y_test, w)
@@ -153,8 +156,8 @@ def fit_w(X_tilde_train, y_train, X_tilde_test, y_test, n_steps, alpha):
 
 # We train the classifier
 
-alpha = # XXX Learning rate for gradient-based optimisation. To be completed by the student
-n_steps = # XXX Number of steps of gradient-based optimisation. To be completed by the student
+alpha = 0.001 # Learning rate for gradient-based optimisation
+n_steps = 50 # Number of steps of gradient-based optimisation
 
 X_tilde_train = get_x_tilde(X_train)
 X_tilde_test = get_x_tilde(X_test)
@@ -170,21 +173,48 @@ w, ll_train, ll_test = fit_w(X_tilde_train, y_train, X_tilde_test, y_test, n_ste
 # Output: Nothing
 #
 
-def plot_ll(ll):
+def plot_ll(ll, title=None, label=None):
     plt.figure()
     ax = plt.gca()
     plt.xlim(0, len(ll) + 2)
     plt.ylim(min(ll) - 0.1, max(ll) + 0.1)
-    ax.plot(np.arange(1, len(ll) + 1), ll, 'r-')
+    ax.plot(np.arange(1, len(ll) + 1), ll, 'r-', label=label)
     plt.xlabel('Steps')
     plt.ylabel('Average log-likelihood')
-    plt.title('Plot Average Log-likelihood Curve')
+    title_text = "Plot Average Log-likelihood Curve" + title
+    plt.title(title_text)
+    if label: plt.legend()
     plt.show()
 
 # We plot the training and test log likelihoods
 
-plot_ll(ll_train)
-plot_ll(ll_test)
+plot_ll(ll_train, " (Training)")
+plot_ll(ll_test, " (Test)")
+
+# Create thresholded predictions of test data and compare to real labels
+def get_confusion_matrix():
+    num_test_datapoints = y.size - n_train
+    
+    predicted_probabilities = predict(X_tilde_test, w)
+    
+    #predicted_values = [1 if prob > 0.5 else 0 for prob in predicted_probabilities]
+    predicted_values = np.where(predicted_probabilities > 0.5, 1, 0)
+
+    not_y_test = np.logical_not(y_test)
+    not_predicted_values = np.logical_not(predicted_values)
+    
+    num_true_positives = sum(np.logical_and(y_test, predicted_values))              # y = y_hat = 1
+    num_true_negatives = sum(np.logical_and(not_y_test, not_predicted_values))      # y = y_hat = 0
+    num_false_positives = sum(np.logical_and(not_y_test, predicted_values))         # y_hat = 1, y = 0 (false +ve)
+    num_false_negatives = sum(np.logical_and(y_test, not_predicted_values))         # y_hat = 0, y = 1 (false -ve)
+
+    confusion_matrix = np.array([[num_true_negatives, num_false_positives],
+                                 [num_false_negatives, num_true_positives]]) / num_test_datapoints
+    return confusion_matrix
+
+
+print("Confusion Matrix:\n", get_confusion_matrix())
+
 
 ##
 # Function that plots the predictive probabilities of the logistic classifier
@@ -236,22 +266,33 @@ def evaluate_basis_functions(l, X, Z):
 
 # We expand the data
 
-l = # XXX Width of the Gaussian basis funcction. To be completed by the student
+"""
+values of l to try, along with the corresponding learning rates and number of steps
+l_values = [0.01, 0.1, 1]
+alpha_values = [0.01, 0.01, 0.0001]
+n_steps = [4000, 500, 500]
+"""
+
+l = 0.01 # Width of the Gaussian basis function
 
 X_tilde_train = get_x_tilde(evaluate_basis_functions(l, X_train, X_train))
 X_tilde_test = get_x_tilde(evaluate_basis_functions(l, X_test, X_train))
 
 # We train the new classifier on the feature expanded inputs
 
-alpha = # XXX Learning rate for gradient-based optimisation with basis functions. To be completed by the student
-n_steps = # XXX Number of steps of gradient-based optimisation with basis functions. To be completed by the student
+alpha = 0.01 # Learning rate for gradient-based optimisation with basis functions
+n_steps = 4000 # Number of steps of gradient-based optimisation with basis functions
 
 w, ll_train, ll_test = fit_w(X_tilde_train, y_train, X_tilde_test, y_test, n_steps, alpha)
 
 # We plot the training and test log likelihoods
 
-plot_ll(ll_train)
-plot_ll(ll_test)
+plot_ll(ll_train, f" (Training) (width l = {l})", label=f"\u03B1={alpha}, n={n_steps} steps")
+plot_ll(ll_test, f" (Test) (width l = {l})", label=f"\u03B1={alpha}, n={n_steps} steps")
+
+# Display the confusion matrix
+
+print("Confusion Matrix:\n", get_confusion_matrix())
 
 # We plot the predictive distribution
 
