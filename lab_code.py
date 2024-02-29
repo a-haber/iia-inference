@@ -192,9 +192,7 @@ plot_ll(ll_train, " (Training)")
 plot_ll(ll_test, " (Test)")
 
 # Create thresholded predictions of test data and compare to real labels
-def get_confusion_matrix():
-    num_test_datapoints = y.size - n_train
-    
+def get_confusion_matrix():    
     predicted_probabilities = predict(X_tilde_test, w)
     
     #predicted_values = [1 if prob > 0.5 else 0 for prob in predicted_probabilities]
@@ -208,8 +206,10 @@ def get_confusion_matrix():
     num_false_positives = sum(np.logical_and(not_y_test, predicted_values))         # y_hat = 1, y = 0 (false +ve)
     num_false_negatives = sum(np.logical_and(y_test, not_predicted_values))         # y_hat = 0, y = 1 (false -ve)
 
-    confusion_matrix = np.array([[num_true_negatives, num_false_positives],
-                                 [num_false_negatives, num_true_positives]]) / num_test_datapoints
+    n_neg = num_true_negatives + num_false_positives
+    n_pos = num_false_negatives + num_true_positives
+    confusion_matrix = np.array([[num_true_negatives / n_neg, num_false_positives / n_neg],
+                                 [num_false_negatives / n_pos, num_true_positives / n_pos]])
     return confusion_matrix
 
 
